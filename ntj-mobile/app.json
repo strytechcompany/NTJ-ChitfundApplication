@@ -31,7 +31,8 @@
         {
           "photosPermission": "The app needs access to your photos to update your profile picture."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

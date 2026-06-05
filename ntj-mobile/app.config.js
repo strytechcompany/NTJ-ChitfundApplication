@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { withAndroidManifest } = require('@expo/config-plugins');
 
 // Manually parse .env file to avoid extra dependencies
 const envPath = path.resolve(__dirname, '.env');
@@ -50,8 +51,19 @@ const API_URL = detectedIp.startsWith('http')
 
 console.log(`[app.config.js] Auto-detected API URL: ${API_URL}`);
 
-module.exports = {
-  expo: {
+module.exports = ({ config }) => {
+  const androidConfig = {
+    ...(config.android || {}),
+    package: 'com.ntjjewellery.mobile',
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#ffffff',
+      ...(config.android?.adaptiveIcon || {})
+    }
+  };
+
+  const dynamicConfig = {
+    ...config,
     name: 'NTJ Mobile',
     slug: 'ntj-mobile',
     version: '1.0.0',
@@ -61,34 +73,51 @@ module.exports = {
     splash: {
       image: './assets/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#121212'
+      backgroundColor: '#121212',
+      ...(config.splash || {})
     },
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      ...(config.ios || {})
     },
-    android: {
-      package: 'com.ntjjewellery.mobile',
-      adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#ffffff'
-      },
-      intentQueries: [
-        {
-          action: 'VIEW',
-          data: {
-            scheme: 'upi'
-          }
-        }
-      ]
-    },
+    android: androidConfig,
     web: {
-      favicon: './assets/favicon.png'
+      favicon: './assets/favicon.png',
+      ...(config.web || {})
     },
     extra: {
+      ...(config.extra || {}),
       apiUrl: API_URL,
       eas: {
-        projectId: '30347892-06af-42f9-97cb-4807a15f22be'
+        projectId: '30347892-06af-42f9-97cb-4807a15f22be',
+        ...(config.extra?.eas || {})
       }
     }
-  }
+  };
+
+  // Apply custom manifest plugin to add UPI queries
+  return withAndroidManifest(dynamicConfig, async (manifestConfig) => {
+    const androidManifest = manifestConfig.modResults.manifest;
+    if (!androidManifest.queries) {
+      androidManifest.queries = [];
+    }
+
+    // Add UPI query if not already present
+    const hasUpiQuery = androidManifest.queries.some(q =>
+      q.intent && q.intent.some(i => i.action && i.action.some(a => a.$['android:name'] === 'android.intent.action.VIEW'))
+    );
+
+    if (!hasUpiQuery) {
+      androidManifest.queries.push({
+        intent: [
+          {
+            action: { $: { 'android:name': 'android.intent.action.VIEW' } },
+            data: { $: { 'android:scheme': 'upi' } }
+          }
+        ]
+      });
+    }
+
+    return manifestConfig;
+  });
 };

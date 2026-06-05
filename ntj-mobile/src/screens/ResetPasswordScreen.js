@@ -18,8 +18,9 @@ const OTP_LENGTH = 6;
 const RESEND_TIMER = 30;
 
 export default function ResetPasswordScreen({ route, navigation }) {
-    const { email } = route.params || {};
+    const { email, otp: initialOtp } = route.params || {};
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [displayOtp, setDisplayOtp] = useState(initialOtp || '');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -66,11 +67,12 @@ export default function ResetPasswordScreen({ route, navigation }) {
         try {
             const result = await authService.forgotPassword(email);
             if (result.success) {
-                Alert.alert('Success', 'A new OTP has been sent to your email.');
                 setResendTimer(RESEND_TIMER);
                 setCanResend(false);
                 setOtp(['', '', '', '', '', '']);
                 inputs.current[0]?.focus();
+                // Show the new OTP on screen
+                if (result.otp) setDisplayOtp(result.otp);
             } else {
                 Alert.alert('Error', result.message || 'Failed to resend OTP');
             }
@@ -122,10 +124,10 @@ export default function ResetPasswordScreen({ route, navigation }) {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.container}
         >
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <LinearGradient
                     colors={['#1a1200', '#2d1f00', '#121212']}
                     style={styles.headerGradient}
@@ -141,10 +143,19 @@ export default function ResetPasswordScreen({ route, navigation }) {
                         <Text style={styles.iconText}>🛡️</Text>
                     </View>
                     <Text style={styles.title}>Reset Password</Text>
-                    <Text style={styles.subtitle}>Enter OTP sent to your email {maskedEmail}</Text>
+                    <Text style={styles.subtitle}>Your reset OTP is ready. See it below and enter it.</Text>
                 </LinearGradient>
 
                 <View style={styles.formCard}>
+                    {/* OTP Display Banner */}
+                    {displayOtp ? (
+                        <View style={styles.otpDisplayBox}>
+                            <Text style={styles.otpDisplayLabel}>🔑 Your Reset OTP</Text>
+                            <Text style={styles.otpDisplayValue}>{displayOtp}</Text>
+                            <Text style={styles.otpDisplayHint}>Enter this code in the boxes below</Text>
+                        </View>
+                    ) : null}
+
                     <View style={styles.inputGroup}>
                         <Text style={styles.inputLabel}>Enter 6-Digit OTP</Text>
                         <View style={styles.otpRow}>
@@ -169,10 +180,10 @@ export default function ResetPasswordScreen({ route, navigation }) {
                         <View style={styles.resendContainer}>
                             {canResend ? (
                                 <TouchableOpacity onPress={handleResendOtp} disabled={isLoading}>
-                                    <Text style={styles.resendLink}>Resend OTP</Text>
+                                    <Text style={styles.resendLink}>Generate New OTP</Text>
                                 </TouchableOpacity>
                             ) : (
-                                <Text style={styles.resendTimerText}>Resend OTP in {resendTimer}s</Text>
+                                <Text style={styles.resendTimerText}>Resend in {resendTimer}s</Text>
                             )}
                         </View>
                     </View>
@@ -302,6 +313,34 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: 4,
+    },
+    otpDisplayBox: {
+        backgroundColor: '#fff8e1',
+        borderWidth: 2,
+        borderColor: '#f9a825',
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    otpDisplayLabel: {
+        fontSize: 13,
+        color: '#f57f17',
+        fontWeight: '700',
+        marginBottom: 6,
+        letterSpacing: 0.5,
+    },
+    otpDisplayValue: {
+        fontSize: 38,
+        fontWeight: '900',
+        color: '#e65100',
+        letterSpacing: 12,
+    },
+    otpDisplayHint: {
+        fontSize: 11,
+        color: '#f57f17',
+        marginTop: 6,
+        fontWeight: '500',
     },
     otpBox: {
         width: 44,

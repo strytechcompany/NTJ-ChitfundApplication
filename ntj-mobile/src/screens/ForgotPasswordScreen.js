@@ -30,11 +30,11 @@ export default function ForgotPasswordScreen({ navigation }) {
             const result = await authService.forgotPassword(identifier.trim());
 
             if (result.success) {
-                Alert.alert(
-                    'OTP Sent',
-                    `A password reset OTP has been sent to your registered email (${result.maskedEmail || 'your email'}). Please check your inbox.`,
-                    [{ text: 'OK', onPress: () => navigation.navigate('ResetPassword', { email: result.email || identifier.trim() }) }]
-                );
+                // Navigate immediately — OTP is displayed on the next screen
+                navigation.navigate('ResetPassword', {
+                    email: result.email || identifier.trim(),
+                    otp: result.otp,
+                });
             } else {
                 Alert.alert('Error', result.message || 'Check your details and try again.');
             }
@@ -47,10 +47,10 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.container}
         >
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <LinearGradient
                     colors={['#e8f5e9', '#f1f8e9', '#f1f8e9']}
                     style={styles.headerGradient}
@@ -66,7 +66,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                         <Text style={styles.iconText}>🔑</Text>
                     </View>
                     <Text style={styles.title}>Forgot Password</Text>
-                    <Text style={styles.subtitle}>Enter your email or phone number to receive a reset OTP via Email</Text>
+                    <Text style={styles.subtitle}>Enter your email or phone number to get your reset OTP on screen</Text>
                 </LinearGradient>
 
                 <View style={styles.formCard}>

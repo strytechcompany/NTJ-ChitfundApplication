@@ -132,20 +132,17 @@ router.post('/send-otp', async (req, res) => {
         const otp = generateOTP();
         const expiresAt = Date.now() + 10 * 60 * 1000;
 
-        // Store keyed by EMAIL (not phone)
+        // Store keyed by EMAIL
         otpStore.set(email, { otp, userData: { name, email, phone: normalizedPhone, password }, expiresAt });
 
-        // Send OTP via Email
-        await sendOtpEmail(email, otp, name);
-
-        const maskedEmail = email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+        // Log OTP to console (dev mode — no email sent)
+        console.log(`\n[OTP] ${email} → ${otp}`);
 
         res.json({
             success: true,
-            message: `OTP sent to your email address. Valid for 10 minutes.`,
+            message: 'OTP generated. Check the screen below to proceed.',
             email,
-            maskedEmail,
-            // devOtp intentionally NOT included — OTP is only sent via email
+            otp, // Displayed on screen — no email required
         });
 
     } catch (error) {
@@ -153,6 +150,7 @@ router.post('/send-otp', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 });
+
 
 // ─────────────────────────────────────────────────────────────
 // @route  POST /api/auth/verify-otp
@@ -236,14 +234,20 @@ router.post('/resend-otp', async (req, res) => {
         stored.expiresAt = Date.now() + 10 * 60 * 1000;
         otpStore.set(email, stored);
 
-        await sendOtpEmail(email, otp, stored.userData?.name);
+        // Log OTP to console (dev mode — no email sent)
+        console.log(`\n[OTP RESEND] ${email} → ${otp}`);
 
-        res.json({ success: true, message: 'OTP resent to your email address.' });
+        res.json({
+            success: true,
+            message: 'New OTP generated.',
+            otp, // Displayed on screen
+        });
     } catch (error) {
         console.error('Resend OTP error:', error);
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 });
+
 
 // ─────────────────────────────────────────────────────────────
 // @route  POST /api/auth/login
@@ -336,17 +340,14 @@ router.post('/forgot-password', async (req, res) => {
         // Store by email
         resetOtpStore.set(user.email, { otp, expiresAt, phone: user.phone });
 
-        // Send OTP to user's registered email
-        await sendOtpEmail(user.email, otp, user.name);
-
-        const maskedEmail = user.email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+        // Log OTP to console (dev mode — no email sent)
+        console.log(`\n[RESET OTP] ${user.email} → ${otp}`);
 
         res.json({
             success: true,
-            message: 'Reset OTP sent to your registered email address.',
+            message: 'Reset OTP generated. Check the screen below to proceed.',
             email: user.email,
-            maskedEmail,
-            // devOtp intentionally NOT included — OTP is only sent via email
+            otp, // Displayed on screen
         });
 
     } catch (error) {
@@ -354,6 +355,7 @@ router.post('/forgot-password', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
+
 
 // ─────────────────────────────────────────────────────────────
 // @route  POST /api/auth/reset-password

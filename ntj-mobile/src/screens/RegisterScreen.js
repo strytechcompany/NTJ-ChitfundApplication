@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StatusBar,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -82,8 +83,8 @@ export default function RegisterScreen({ navigation }) {
             const result = await sendOtp({ name, email, phone, password });
 
             if (result.success) {
-                // Navigate directly — OTP is sent to the user's email only
-                navigation.navigate('OtpVerification', { email, name });
+                // Pass OTP to OtpVerificationScreen to display on screen
+                navigation.navigate('OtpVerification', { email, name, otp: result.otp });
             } else {
                 const errorMsg = result.message || 'Failed to send OTP. Please try again.';
                 const details = result.serverError ? `\n\n${result.serverError}` : '';
@@ -103,12 +104,14 @@ export default function RegisterScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.container}
         >
+            <StatusBar barStyle="dark-content" backgroundColor="#e8f5e9" />
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
             >
                 {/* Header Section */}
                 <LinearGradient
@@ -260,8 +263,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#f1f8e9',
     },
     scrollContent: {
-        // flexGrow:0 is critical: lets content be taller than the screen → scroll activates
-        flexGrow: 0,
+        flexGrow: 1,
         paddingBottom: 40,
     },
     headerGradient: {

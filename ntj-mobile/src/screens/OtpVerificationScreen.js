@@ -18,8 +18,8 @@ const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60; // seconds
 
 export default function OtpVerificationScreen({ route, navigation }) {
-    // Now receives `email` from RegisterScreen (not phone)
-    const { email, name } = route.params || {};
+    // Now receives `email`, `name`, and `otp` from RegisterScreen
+    const { email, name, otp: initialOtp } = route.params || {};
     const { verifyOtpAndRegister, resendOtp } = useAuth();
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -27,6 +27,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
     const [isResending, setIsResending] = useState(false);
     const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
     const [canResend, setCanResend] = useState(false);
+    const [displayOtp, setDisplayOtp] = useState(initialOtp || '');
 
     const inputs = useRef([]);
     const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -123,14 +124,14 @@ export default function OtpVerificationScreen({ route, navigation }) {
         if (!canResend) return;
         setIsResending(true);
         try {
-            // Pass email to resend
             const result = await resendOtp(email);
             if (result.success) {
                 setOtp(['', '', '', '', '', '']);
                 inputs.current[0]?.focus();
                 setCountdown(RESEND_COOLDOWN);
                 setCanResend(false);
-                Alert.alert('OTP Resent', `A new OTP has been sent to ${email}.`);
+                // Show the new OTP on screen
+                if (result.otp) setDisplayOtp(result.otp);
             } else {
                 Alert.alert('Failed', result.message || 'Could not resend OTP. Please try again.');
             }
@@ -164,14 +165,13 @@ export default function OtpVerificationScreen({ route, navigation }) {
                 </TouchableOpacity>
 
                 <View style={styles.iconCircle}>
-                    <Text style={styles.iconText}>✉️</Text>
+                    <Text style={styles.iconText}>🔐</Text>
                 </View>
-                <Text style={styles.title}>Verify Your Email</Text>
+                <Text style={styles.title}>OTP Verification</Text>
                 <Text style={styles.subtitle}>
-                    Hi {name ? name.split(' ')[0] : 'there'}! We sent a 6-digit OTP to
+                    Hi {name ? name.split(' ')[0] : 'there'}! Your OTP is ready.
                 </Text>
-                <Text style={styles.emailText}>{maskedEmail}</Text>
-                <Text style={styles.emailHint}>Check your inbox & spam folder</Text>
+                <Text style={styles.emailHint}>Register as: {email}</Text>
             </LinearGradient>
 
             {/* Card */}
@@ -186,7 +186,16 @@ export default function OtpVerificationScreen({ route, navigation }) {
                         <Text style={styles.stepTextActive}>2</Text>
                     </View>
                 </View>
-                <Text style={styles.stepLabel}>Step 2 of 2 — Enter OTP sent to your email</Text>
+                <Text style={styles.stepLabel}>Step 2 of 2 — Enter the OTP shown below</Text>
+
+                {/* OTP Display Banner */}
+                {displayOtp ? (
+                    <View style={styles.otpDisplayBox}>
+                        <Text style={styles.otpDisplayLabel}>🔑 Your OTP Code</Text>
+                        <Text style={styles.otpDisplayValue}>{displayOtp}</Text>
+                        <Text style={styles.otpDisplayHint}>See this code and type it in the boxes below</Text>
+                    </View>
+                ) : null}
 
                 {/* OTP Boxes */}
                 <Animated.View
@@ -212,7 +221,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
                     ))}
                 </Animated.View>
 
-                <Text style={styles.otpHint}>Check your email inbox (and spam/junk folder).</Text>
+                <Text style={styles.otpHint}>Type the 6-digit code shown above.</Text>
 
                 {/* Verify Button */}
                 <TouchableOpacity
@@ -245,19 +254,19 @@ export default function OtpVerificationScreen({ route, navigation }) {
                             {isResending ? (
                                 <ActivityIndicator color="#2e7d32" size="small" />
                             ) : (
-                                <Text style={styles.resendLink}>Resend OTP to email</Text>
+                                <Text style={styles.resendLink}>Generate New OTP</Text>
                             )}
                         </TouchableOpacity>
                     ) : (
                         <Text style={styles.countdownText}>
-                            Resend OTP in{' '}
+                            Resend in{' '}
                             <Text style={styles.countdownNum}>{countdown}s</Text>
                         </Text>
                     )}
                 </View>
 
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Wrong email? </Text>
+                    <Text style={styles.footerText}>Wrong details? </Text>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
                         <Text style={styles.link}>Go back</Text>
                     </TouchableOpacity>
@@ -393,6 +402,35 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 24,
         marginTop: 4,
+        fontWeight: '500',
+    },
+    otpDisplayBox: {
+        backgroundColor: '#fff8e1',
+        borderWidth: 2,
+        borderColor: '#f9a825',
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    otpDisplayLabel: {
+        fontSize: 13,
+        color: '#f57f17',
+        fontWeight: '700',
+        marginBottom: 6,
+        letterSpacing: 0.5,
+    },
+    otpDisplayValue: {
+        fontSize: 38,
+        fontWeight: '900',
+        color: '#e65100',
+        letterSpacing: 12,
+        fontVariant: ['tabular-nums'],
+    },
+    otpDisplayHint: {
+        fontSize: 11,
+        color: '#f57f17',
+        marginTop: 6,
         fontWeight: '500',
     },
     button: {
